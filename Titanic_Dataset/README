@@ -1,1 +1,7 @@
+Data Analysis for the dataset "Titanic"
 
+The current folders contain the process of Data Profiling not fully developed yet. 
+
+In order to run the project, run the Main file. 
+
+This project will generate charts that will be visible in a generated folder.
