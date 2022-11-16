@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import utils
+from seaborn import heatmap
 
 
 
@@ -167,6 +168,41 @@ class Data_Analysis:
         '''
         now number of records per value for both numerical and symbolic variables
         '''
+    def correlations(self):
+        data = self.data
+        variable_types: dict = {
+            'Numeric': [],
+            'Binary': [],
+            'Date': [],
+            'Symbolic': []
+        }
+        for c in data.columns:
+            uniques = data[c].dropna(inplace=False).unique()
+            if len(uniques) == 2:
+                variable_types['Binary'].append(c)
+                data[c].astype('bool')
+            elif data[c].dtype == 'datetime64':
+                variable_types['Date'].append(c)
+            elif c == "CRASH_DATE":
+                variable_types['Date'].append(c)
+            elif c == "CRASH_TIME":
+                variable_types['Date'].append(c)
+            elif data[c].dtype == 'int':
+                variable_types['Numeric'].append(c)
+            elif data[c].dtype == 'float':
+                variable_types['Numeric'].append(c)
+            else:
+                data[c].astype('category')
+                variable_types['Symbolic'].append(c)
+        # delete later repeated code
+        symbolic_vars = data[variable_types['Symbolic']].copy()
+        corr_mtx = symbolic_vars.apply(lambda x: pd.factorize(x)[0]).corr(method='pearson', min_periods=1)
+        fig = plt.figure(figsize=[12, 12])
+        heatmap(abs(corr_mtx), xticklabels=corr_mtx.columns, yticklabels=corr_mtx.columns, annot=True, cmap='Greens')
+        plt.title('Correlation analysis')
+        plt.savefig('Data_Profiling/correlation/correlation_analysis_symbolic.png')
+        # now for the other types
+        # question: can we do correlations between types of different kind?
 
     def data_profiling(self):
         self.data_dimensionality()
@@ -174,6 +210,7 @@ class Data_Analysis:
         self.missing_values()
         self.data_granularity()
         self.data_distribution()
+        self.correlations()
 
 
 

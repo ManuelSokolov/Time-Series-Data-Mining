@@ -13,13 +13,13 @@ if __name__ == '__main__':
     df.drop(['From_Date', 'From_Time', 'To_Date', 'To_Time', 'IBRS', 'Beat', 'Rep_Dist','DVFlag', 'Invl_No'], axis=1, inplace=True)
     df = df.sort_values(["Reported_Date","Reported_Time"])
     train, test = train_test_split(df, test_size=0.85, shuffle=False)
-    
 
+    da = Data_Analysis.Data_Analysis(df)
+    da.data_profiling()
 
     # preprocess the column with content
    # pd = preprocess(dataset)
    # dataset_clean = pd.preprocess_col('content')
-    # da = Data_Analysis.Data_Analysis(df)
     # da.data_profiling()
 
 
