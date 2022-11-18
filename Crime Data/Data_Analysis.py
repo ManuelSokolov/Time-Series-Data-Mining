@@ -4,15 +4,12 @@ import matplotlib.pyplot as plt
 import utils
 from seaborn import heatmap
 
-
-
-
-
-
 class Data_Analysis:
 
     def __init__(self, dataset):
         self.data = dataset.copy()
+        # Dict with names of columns of categories Numerical, Categorical, Symbolical and Date
+        self.variables_by_type = self._split_variables_by_type()
     '''
     Data Dimensionality gives number of records vs number of variables
     '''
@@ -47,9 +44,9 @@ class Data_Analysis:
                 data[c].astype('bool')
             elif data[c].dtype == 'datetime64':
                 variable_types['Date'].append(c)
-            elif c == "CRASH_DATE":
+            elif c == "Reported_Date":
                 variable_types['Date'].append(c)
-            elif c == "CRASH_TIME":
+            elif c == "Reported_Time":
                 variable_types['Date'].append(c)
             elif data[c].dtype == 'int':
                 variable_types['Numeric'].append(c)
@@ -116,32 +113,7 @@ class Data_Analysis:
     def data_distribution(self):
         data = self.data
         # Separate variables into types (split later into method)
-        cat_vars = data.select_dtypes(include='object')
-        data[cat_vars.columns] = data.select_dtypes(['object']).apply(lambda x: x.astype('category'))
-        variable_types: dict = {
-            'Numeric': [],
-            'Binary': [],
-            'Date': [],
-            'Symbolic': []
-        }
-        for c in data.columns:
-            uniques = data[c].dropna(inplace=False).unique()
-            if len(uniques) == 2:
-                variable_types['Binary'].append(c)
-                data[c].astype('bool')
-            elif data[c].dtype == 'datetime64':
-                variable_types['Date'].append(c)
-            elif c == "CRASH_DATE":
-                variable_types['Date'].append(c)
-            elif c == "CRASH_TIME":
-                variable_types['Date'].append(c)
-            elif data[c].dtype == 'int':
-                variable_types['Numeric'].append(c)
-            elif data[c].dtype == 'float':
-                variable_types['Numeric'].append(c)
-            else:
-                data[c].astype('category')
-                variable_types['Symbolic'].append(c)
+        variable_types = self.variables_by_type
         # First Part numerical variables
         # Boxplots for each variable and outliers by std (desvio padrao) e IQR
         outliers_iqr = []
@@ -168,8 +140,11 @@ class Data_Analysis:
         '''
         now number of records per value for both numerical and symbolic variables
         '''
-    def correlations(self):
+
+    def _split_variables_by_type(self):
         data = self.data
+        cat_vars = data.select_dtypes(include='object')
+        data[cat_vars.columns] = data.select_dtypes(['object']).apply(lambda x: x.astype('category'))
         variable_types: dict = {
             'Numeric': [],
             'Binary': [],
@@ -183,9 +158,9 @@ class Data_Analysis:
                 data[c].astype('bool')
             elif data[c].dtype == 'datetime64':
                 variable_types['Date'].append(c)
-            elif c == "CRASH_DATE":
+            elif c == "Reported_Date":
                 variable_types['Date'].append(c)
-            elif c == "CRASH_TIME":
+            elif c == "Reported_Time":
                 variable_types['Date'].append(c)
             elif data[c].dtype == 'int':
                 variable_types['Numeric'].append(c)
@@ -194,6 +169,11 @@ class Data_Analysis:
             else:
                 data[c].astype('category')
                 variable_types['Symbolic'].append(c)
+        return variable_types
+
+    def correlations(self):
+        data = self.data
+        variable_types = self.variables_by_type
         # delete later repeated code
         symbolic_vars = data[variable_types['Symbolic']].copy()
         corr_mtx = symbolic_vars.apply(lambda x: pd.factorize(x)[0]).corr(method='pearson', min_periods=1)
@@ -202,16 +182,33 @@ class Data_Analysis:
         plt.title('Correlation analysis')
         plt.savefig('Data_Profiling/Correlation/correlation_analysis_symbolic.png')
         plt.show()
+        fig = plt.figure(figsize=[12, 12])
+        corr_mtx = abs(data.corr())
+        heatmap(abs(corr_mtx), xticklabels=corr_mtx.columns, yticklabels=corr_mtx.columns, annot=True, cmap='Blues')
+        plt.title('Correlation analysis')
+        plt.savefig(f'Data_Profiling/Correlation/correlations_numeric.png')
         # now for the other types
         # question: can we do correlations between types of different kind?
 
+    def each_variable_vs_date(self):
+        data = self.data.copy()
+        variable_types = self.variables_by_type
+        for variable in variable_types['Numeric']:
+            fig, ax = plt.subplots(figsize=(10, 8))
+            ax.plot(data['Reported_Date'], data[variable])
+            plt.title(variable + 'vs Date')
+            plt.savefig('Data_Profiling/Distribution/VS_DATE' + variable + 'vsDate.png')
+
     def data_profiling(self):
+        '''
         self.data_dimensionality()
         self.number_of_variables_per_type()
         self.missing_values()
         self.data_granularity()
         self.data_distribution()
         self.correlations()
+        '''
+        self.each_variable_vs_date()
 
 
 

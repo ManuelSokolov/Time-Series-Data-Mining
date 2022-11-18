@@ -10,10 +10,12 @@ from sklearn.svm import SVC
 if __name__ == '__main__':
     # read data set
     df = pd.read_csv("./input/KCPD_Crime_Data_2016.csv", sep=',')
-    df.drop(['From_Date', 'From_Time', 'To_Date', 'To_Time', 'IBRS', 'Beat', 'Rep_Dist','DVFlag', 'Invl_No'], axis=1, inplace=True)
+    #df.drop(['From_Date', 'From_Time', 'To_Date', 'To_Time', 'IBRS', 'Beat', 'Rep_Dist','DVFlag', 'Invl_No'], axis=1, inplace=True)
     df = df.sort_values(["Reported_Date","Reported_Time"])
+    df["Reported_Date"] = pd.to_datetime(df["Reported_Date"])
+    print(df.head(10)[['Reported_Date','Reported_Time']])
     train, test = train_test_split(df, test_size=0.85, shuffle=False)
-
+    df["Reported_Date"] = pd.to_datetime(df["Reported_Date"])
     da = Data_Analysis.Data_Analysis(df)
     da.data_profiling()
 
