@@ -1,6 +1,7 @@
 import pandas as pd
 import Data_Analysis
-from preprocess import preprocess
+import Data_Preparation
+from preprocess_nlp import preprocess
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import SVC
@@ -14,10 +15,12 @@ if __name__ == '__main__':
     df = df.sort_values(["Reported_Date","Reported_Time"])
     df["Reported_Date"] = pd.to_datetime(df["Reported_Date"])
     print(df.head(10)[['Reported_Date','Reported_Time']])
-    train, test = train_test_split(df, test_size=0.85, shuffle=False)
+    #train, test = train_test_split(df, test_size=0.85, shuffle=False)
     df["Reported_Date"] = pd.to_datetime(df["Reported_Date"])
     da = Data_Analysis.Data_Analysis(df)
     da.data_profiling()
+    dp = Data_Preparation.Data_Preparation(df)
+
 
     # preprocess the column with content
    # pd = preprocess(dataset)

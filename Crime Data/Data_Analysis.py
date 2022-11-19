@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import utils
 from seaborn import heatmap
+import datetime as dt
 
 class Data_Analysis:
 
@@ -72,6 +73,7 @@ class Data_Analysis:
             nr = data[var].isna().sum()
             if nr > 0:
                 mv[var] = nr
+        print(mv)
         plt.figure(figsize=(6, 3))
         plt.bar(tuple(mv.keys()), list(mv.values()))
         plt.xticks(rotation=45)
@@ -137,6 +139,46 @@ class Data_Analysis:
         utils.multiple_bar_chart(variable_types['Numeric'], outliers, title='Nr of outliers per variable', xlabel='variables',
                            ylabel='nr outliers', percentage=False)
         plt.savefig('Data_Profiling/Distribution/outliers.png')
+        for variable in data[variable_types['Symbolic'] + variable_types['Date']]:
+            if variable == 'Address':
+                plt.figure(figsize=[12, 12])
+                res = data[variable].value_counts().sort_values(ascending=False)[:65]
+                plt.bar(tuple(res.index.tolist()), list(res.values.tolist()))
+                plt.xticks(rotation=90)
+                plt.savefig('Data_Profiling/Distribution/{}.png'.format(variable+'plot'))
+            elif variable == 'Description':
+                plt.figure(figsize=[12, 12])
+                res = data[variable].value_counts().sort_values(ascending=False)[:50]
+                plt.bar(tuple(res.index.tolist()), list(res.values.tolist()))
+                plt.xticks(rotation=90)
+                plt.savefig('Data_Profiling/Distribution/{}.png'.format(variable + 'plot'))
+            # agrupar por mes e nao por dia
+            elif variable == 'From_Date':
+                plt.figure(figsize=[12, 12])
+                res = data[variable].value_counts().sort_values(ascending=False)[:400]
+                plt.bar(tuple(res.index.tolist()), list(res.values.tolist()))
+                plt.xticks(rotation=90)
+                plt.savefig('Data_Profiling/Distribution/{}.png'.format(variable + 'plot'))
+            elif variable == 'From_Time':
+                pass
+            elif variable == 'Location 1':
+                plt.figure(figsize=[12, 12])
+                res = data[variable].value_counts().sort_values(ascending=False)[:50]
+                plt.bar(tuple(res.index.tolist()), list(res.values.tolist()))
+                plt.xticks(rotation=90)
+                plt.savefig('Data_Profiling/Distribution/{}.png'.format(variable + 'plot'))
+            elif variable == 'Rep_Dist':
+                plt.figure(figsize=[12, 12])
+                res = data[variable].value_counts().sort_values(ascending=False)[:10]
+                plt.bar(tuple(res.index.tolist()), list(res.values.tolist()))
+                plt.xticks(rotation=90)
+                plt.savefig('Data_Profiling/Distribution/{}.png'.format(variable + 'plot'))
+            else:
+                plt.figure(figsize=[12, 12])
+                res = data[variable].value_counts()
+                plt.bar(tuple(res.index.tolist()), list(res.values.tolist()))
+                plt.xticks(rotation=90)
+                plt.savefig('Data_Profiling/Distribution/{}.png'.format(variable + 'plot'))
         '''
         now number of records per value for both numerical and symbolic variables
         '''
@@ -200,10 +242,43 @@ class Data_Analysis:
         plt.savefig('Data_Profiling/Correlation/correlation_analysis_symbolic_numerical.png')
         '''
 
+    def crime_per_month_distribution(self):
+        data = self.data.copy()
+        #index = data.index.to_period('W')
+        data['month'] = data['Reported_Date'].dt.month
+        plt.figure(figsize=[12, 12])
+        res = data['month'].value_counts()
+        plt.bar(res.index, res.values)
+        plt.xticks(rotation=90)
+        plt.title("Number of crimes per month")
+        plt.savefig('Data_Profiling/Distribution/number_of_crimes_per_month.png')
+
+    def crime_per_day_number_distribution(self):
+        data = self.data.copy()
+        # index = data.index.to_period('W')
+        data['day'] = data['Reported_Date'].dt.day
+        plt.figure(figsize=[12, 12])
+        res = data['day'].value_counts()
+        plt.bar(res.index, res.values)
+        plt.xticks(rotation=90)
+        plt.title("Number of crimes per day")
+        plt.savefig('Data_Profiling/Distribution/number_of_crimes_per_day_number.png')
+
+    def crime_per_hour_distribution(self):
+        data = self.data.copy()
+        # index = data.index.to_period('W')
+        hour_value = dict.fromkeys(range(24),0)
+        for value in data['Reported_Time']:
+            aux = value.split(":")
+            hour_value[int(aux[0])]+=1
+        plt.figure(figsize=[12, 12])
+        plt.bar(list(hour_value.keys()), list(hour_value.values()))
+        plt.xticks(rotation=90)
+        plt.title("Number of crimes per Hour")
+        plt.savefig('Data_Profiling/Distribution/number_of_crimes_per_hour.png')
 
 
-
-    def each_variable_vs_date(self):
+    def each_variable_vs_date_day(self):
         data = self.data.copy()
         variable_types = self.variables_by_type
         for variable in variable_types['Numeric']:
@@ -212,15 +287,22 @@ class Data_Analysis:
             plt.title(variable + 'vs Date')
             plt.savefig('Data_Profiling/Distribution/VS_DATE' + variable + 'vsDate.png')
 
-
     def data_profiling(self):
+
         self.data_dimensionality()
         self.number_of_variables_per_type()
         self.missing_values()
         self.data_granularity()
+
         self.data_distribution()
+        self.crime_per_month_distribution()
+        self.crime_per_day_number_distribution()
+        self.crime_per_hour_distribution()
         self.correlations()
-        self.each_variable_vs_date()
+        self.each_variable_vs_date_day()
+
+        plt.close('all')
+
 
 
 
