@@ -72,9 +72,9 @@ class Data_Analysis:
             nr = data[var].isna().sum()
             if nr > 0:
                 mv[var] = nr
-
         plt.figure(figsize=(6, 3))
-        plt.bar(tuple(mv.keys()),list(mv.values()))
+        plt.bar(tuple(mv.keys()), list(mv.values()))
+        plt.xticks(rotation=45)
         plt.title('Nr of missing values per variable')
         plt.xlabel('variables')
         plt.ylabel('nr missing values')
@@ -189,6 +189,19 @@ class Data_Analysis:
         plt.savefig(f'Data_Profiling/Correlation/correlations_numeric.png')
         # now for the other types
         # question: can we do correlations between types of different kind?
+        '''
+        numerical_symbolic = symbolic_vars.apply(lambda x: pd.factorize(x)[0])
+        numerical = data[variable_types['Numeric']]
+        all_numerical = numerical_symbolic + numerical
+        corr_mtx = all_numerical.corr()
+        print(corr_mtx)
+        heatmap(abs(corr_mtx), xticklabels=corr_mtx.columns, yticklabels=corr_mtx.columns, annot=True, cmap='Greens')
+        plt.title('Correlation analysis all')
+        plt.savefig('Data_Profiling/Correlation/correlation_analysis_symbolic_numerical.png')
+        '''
+
+
+
 
     def each_variable_vs_date(self):
         data = self.data.copy()
@@ -199,15 +212,14 @@ class Data_Analysis:
             plt.title(variable + 'vs Date')
             plt.savefig('Data_Profiling/Distribution/VS_DATE' + variable + 'vsDate.png')
 
+
     def data_profiling(self):
-        '''
         self.data_dimensionality()
         self.number_of_variables_per_type()
         self.missing_values()
         self.data_granularity()
         self.data_distribution()
         self.correlations()
-        '''
         self.each_variable_vs_date()
 
 
