@@ -38,14 +38,20 @@ class Data_Preparation():
         # Sex ?
         self.data['Sex'].fillna('U', inplace=True)
 
+        # transformar location em coordenada so
+        # remover duplicados!! alguns teem victima e suspeito, pertencem ao mesmo report mas teem roles diferentes
         # Zip Code mais comum ou ir ver qual e o codigo da zona? -> ma ideia
         #self.data['Zip Code'].fillna(most_common, inplace=True)
 
     def drop_unnecessary_vars(self):
         #drop row with not a number values
-        self.data.dropna(subset=[1])
-        self.data = self.data[self.data.notnull(self.data['Zip'])]
+        #self.data.dropna(subset=[1])
+        #self.data = self.data[self.data.notnull(self.data['Zip Code'])]
+        self.data.drop(['Report_No', 'From_Time', 'To_Date', 'To_Time', 'IBRS', 'Beat', 'City','Location 1'],
+                axis=1, inplace=True)
 
 
     def Data_Prepare(self):
-        pass
+        self.missing_values()
+        self.drop_unnecessary_vars()
+        return self.data
