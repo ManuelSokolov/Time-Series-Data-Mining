@@ -46,7 +46,7 @@ if __name__ == '__main__':
     print(df.head(10))
 
     #Export to csv to better visualize everything
-    df.to_csv('./Crime_Data/dataset_clean.csv', encoding='utf-8')
+    #df.to_csv('./Crime_Data/dataset_clean.csv', encoding='utf-8')
 
     #print(df.head(10))
     
