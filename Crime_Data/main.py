@@ -8,10 +8,12 @@ import Data_Preparation
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import SVC
+import numpy
+from geopy.geocoders import Nominatim
 
 if __name__ == '__main__':
     # read data set
-    df = pd.read_csv("./Crime_Data/input/KCPD_Crime_Data_2020_2.csv", sep=',')
+    df = pd.read_csv("input/KCPD_Crime_Data_2020_2.csv", sep=',')
 
     #Drop deemed unnecessary colls
     df.drop(['From_Date', 'From Time', 'To_Date', 'To Time', 'IBRS', 'Beat', 'Rep_Dist','Description', 'City', 'Area', 'Zip Code', 'Involvement'], axis=1, inplace=True)
@@ -39,33 +41,73 @@ if __name__ == '__main__':
     #change index to the Report Number
     df.set_index('Report_No', inplace=True, drop=True)
 
-    #Change the date format
-    df['Reported_Date'] = pd.to_datetime(df.Reported_Date)
-    df['Reported_Date'] = df['Reported_Date'].dt.strftime('%d-%m-%Y')
-
-    print(df.head(10))
-
-    #Export to csv to better visualize everything
-    #df.to_csv('./Crime_Data/dataset_clean.csv', encoding='utf-8')
-
-    #print(df.head(10))
+    #df = Data_Preparation.Data_Preparation.fill_know_missing_values(df)
     
-    # % of missing values per collumn
-    #print (df.isnull().mean() * 100)
+    #Data_Preparation.Data_Preparation.count_uniques_without_location(df)
 
-    #Export to csv to better visualize everything
-    #df.to_csv('changes.csv', encoding='utf-8')
+    #Has 40803 missing location values
+    dt = pd.read_csv("teste_andre.csv", sep=',')
 
-    #remove all collumns with more than 75% missing values
-    # perc = 75.0
-    # min_count =  int(((100-perc)/100)*df.shape[0] + 1)
-    # mod_df = df.dropna( axis=1,thresh=min_count)
+    #Remove rows with location '0'
+    dt = dt[dt.Location != '0']
+
+    dt = dt.iloc[: , 4:]
+    dt = dt.iloc[:, [1,2,0,3,4,5,6,7,8,9,10]]
+
+
+    #Format Date and Time in the same column
+    dt['Reported_Date'] = pd.to_datetime(dt.Reported_Date, format='%d-%m-%Y')
+    dt['Reported_Date'] = dt['Reported_Date'].dt.strftime('%Y-%m-%d')
+    dt['Reported Time'] = dt['Reported Time'].astype(str) + ':00'
+    dt['Timestamps'] = pd.to_datetime(dt['Reported_Date'] + dt['Reported Time'], format='%Y-%m-%d%H:%M:%S')
+    dt = dt.drop(['Reported_Date'], axis=1)
+    dt = dt.drop(['Reported Time'], axis=1)
+
+    #Format location into 2 columns
+    column_x, column_y = Data_Preparation.Data_Preparation.parse_location(dt)
+    dt['Location_X'] = column_x
+    dt['Location_Y'] = column_y
+    dt = dt.drop(['Location'], axis=1)
+
+    #ID to numeric values
+    dt = Data_Preparation.Data_Preparation.parse_ID(dt)
+    dt["Report_No"] = pd.to_numeric(dt["Report_No"])
+
+    #Timestamp in the first row
+    dt = dt.iloc[:, [8,1,2,0,3,4,5,6,7,9,10]]
+    print(dt.head())  
     
-    #remote rows with more than 75% missing values
-    # threshold = df.shape[1] * 0.75
-    # df.dropna(thresh=threshold, inplace=True)
-   
-    #preprocess the column with content
-    #pd = preprocess(dataset)
-    #dataset_clean = pd.preprocess_col('content')
-    #da.data_profiling()
+    #convert Firearm to numeric
+    dt["Firearm Used Flag"] = dt["Firearm Used Flag"].astype(int)
+
+    #Convert DVFlag to numeric
+    d = {'Y': True, 'N': False}
+    dt['DVFlag'] = dt['DVFlag'].map(d)
+    dt["DVFlag"] = dt["DVFlag"].astype(int)
+
+    #Convert sex to numeric
+    d = {'F': 1, 'M': 0, 'U':2}
+    dt['Sex'] = dt['Sex'].map(d)
+    dt["Sex"] = dt["Sex"].astype(int)
+
+    #Convert  race to numeric
+    d = {'B': 1, 'W': 0, 'U':2, 'I':3}
+    dt['Race'] = dt['Race'].map(d)
+    dt["Race"] = dt["Race"].astype(int)
+
+    #age to age groups 
+    bins= [0,18,30,45,60,75,110]
+    labels = [0,1,2,3,4,5]
+    dt['AgeGroup'] = pd.cut(dt['Age'], bins=bins, labels=labels, right=False)
+    dt["AgeGroup"] = pd.to_numeric(dt["AgeGroup"])
+    dt = dt.drop(['Age'], axis=1)
+
+    #Location to numeric
+    dt["Location_X"] = pd.to_numeric(dt["Location_X"])
+    dt["Location_Y"] = pd.to_numeric(dt["Location_Y"])
+
+    print(dt.dtypes)
+    
+    #dataframe to csv
+    dt.to_csv('data_crime.csv',index=False)
+    

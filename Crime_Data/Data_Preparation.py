@@ -1,4 +1,7 @@
 import statistics as st
+from geopy.geocoders import Nominatim
+import time
+import datetime
 
 class Data_Preparation():
     def __init__(self,data):
@@ -68,3 +71,84 @@ class Data_Preparation():
         self.missing_values()
         self.drop_unnecessary_vars()
         return self.data
+    
+    def fill_know_missing_values(df):
+        list_adress = []
+        list_location = []
+
+        for i, j in df.iterrows():
+        
+            location = j['Location']
+            address = j['Address']
+
+            if address not in list_adress and location != 0:
+                list_adress.append(address)
+                list_location.append(location)
+
+        k = " Kansas City"
+        #lista_addK = [x + k for x in list_adress]
+        geolocator = Nominatim(user_agent="BiomedicalProj", timeout=100)
+        
+        for i, j in df.iterrows():
+            if(j['Location'] == 0):
+                if(j['Address'] in list_adress):
+                    df.at[i,'Location'] = list_location[list_adress.index(j['Address'])]
+                else:
+                    try:
+                        n = geolocator.geocode(str(j['Address']) + k)
+                        if n != None:
+                            a = (n.latitude, n.longitude)
+                            print(j['Location'])
+                            df.at[i,'Location'] = a
+                            #print(df[i]['Location'])
+                            print()
+                    
+                    except:
+                        print("Este não deu!!!")
+    
+        return df
+
+    def count_uniques_without_location(df):
+        unique_adress=df['Address'].unique()
+        count_unique_zero = 0
+        count = 0
+        for i, j in df.iterrows():
+            if (j['Address'] in unique_adress):
+                if(j['Location'] == 0):
+                    count_unique_zero += 1
+                    unique_adress = unique_adress[unique_adress != j['Address']]
+
+            if(j['Location'] == 0):
+                count += 1
+
+        print("number of uniques with no location coordinates:")
+        print(count_unique_zero)
+        print("number without location coordinates:")
+        print(count)
+
+    def parse_location(df):
+        column_x = []
+        column_y = []
+        for i, j in df.iterrows():
+            location = j['Location']
+            location = location.replace('(', '')
+            location = location.replace(')', '')
+            location = location.replace(' ', '')
+            location_arr = location.split(",")
+            column_x.append(location_arr[0])
+            column_y.append(location_arr[1])
+
+        return column_x, column_y
+
+    def parse_ID(df):
+        for i, j in df.iterrows():
+            ID = j['Report_No']
+            ID = ID.replace('K', '')
+            ID = ID.replace('C', '')
+            df.at[i,'Report_No'] = ID
+    
+        return df
+
+
+
+    

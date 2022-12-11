@@ -1,0 +1,20 @@
+         Timestamps  ...  Location_Y
+0  01-01-2020T00:25  ...  -94.595617
+1  01-01-2020T00:26  ...  -94.511084
+2  01-01-2020T00:21  ...  -94.604079
+3  01-01-2020T00:37  ...  -94.597799
+4  01-01-2020T00:25  ...  -94.587055
+
+[5 rows x 11 columns]
+Timestamps            object
+Offense               object
+Address               object
+Report_No              int64
+DVFlag                 int64
+Race                   int64
+Sex                    int64
+Firearm Used Flag      int64
+Location_X           float64
+Location_Y           float64
+AgeGroup               int64
+dtype: object
