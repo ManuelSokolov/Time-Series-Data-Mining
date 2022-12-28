@@ -60,6 +60,8 @@ if __name__ == '__main__':
     dt['Reported_Date'] = dt['Reported_Date'].dt.strftime('%Y-%m-%d')
     dt['Reported Time'] = dt['Reported Time'].astype(str) + ':00'
     dt['Timestamps'] = pd.to_datetime(dt['Reported_Date'] + dt['Reported Time'], format='%Y-%m-%d%H:%M:%S')
+    dt.sort_values(by='Timestamps', inplace = True)
+    dt = dt.drop_duplicates('Timestamps',keep='last')
     dt = dt.drop(['Reported_Date'], axis=1)
     dt = dt.drop(['Reported Time'], axis=1)
 
@@ -68,6 +70,18 @@ if __name__ == '__main__':
     dt['Location_X'] = column_x
     dt['Location_Y'] = column_y
     dt = dt.drop(['Location'], axis=1)
+
+
+    #List all the victims to remove from the final dataset 
+    df_vic = pd.read_csv("input/KCPD_Crime_Data_2020_2.csv", sep=',')
+    vic_list = []
+    for i, j in df_vic.iterrows():
+            if('VIC' in j['Involvement']):
+                vic_list.append(j['Report_No'])
+
+    print(vic_list)
+
+    dt = dt[~dt['Report_No'].isin(vic_list)]
 
     #ID to numeric values
     dt = Data_Preparation.Data_Preparation.parse_ID(dt)
@@ -107,7 +121,7 @@ if __name__ == '__main__':
     dt["Location_Y"] = pd.to_numeric(dt["Location_Y"])
 
     print(dt.dtypes)
-    
+
     #dataframe to csv
-    dt.to_csv('data_crime.csv',index=False)
+    dt.to_csv('data_crime_final.csv',index=False)
     
