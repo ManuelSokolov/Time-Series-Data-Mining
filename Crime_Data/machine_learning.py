@@ -55,6 +55,20 @@ def apply_gradient_boosting_regressor(fraction_of_the_day, location, label, lim_
     mpl.legend(loc='upper right')
     mpl.show()
     return y_pred
+
+def apply_logistic_regression(coord):
+    # Create the model
+    model = LinearRegression()
+
+    # Reshape the data to be in the form [x(t), x(t+1)]
+    X = np.column_stack((coord[:-1], coord[1:]))
+
+    # Fit the model to the data
+    model.fit(X[:, 0].reshape(-1, 1), X[:, 1])
+
+    # Predict the next x coordinate
+    return model.predict(coord.iloc[-1].reshape(-1, 1))[0]
+
 data = pd.read_csv("data_crime_final.csv")
 
 timestamps = pd.to_datetime(data['Timestamps'])
@@ -106,3 +120,11 @@ matrix = np.column_stack((prediction_y, prediction_x))
 m7.add_child(plugins.HeatMap(matrix, radius=15))
 
 m7.save("m7.html")
+
+# approach 2 - Linear Regression - Predict the next x given TimeStamps
+
+from sklearn.linear_model import LinearRegression
+
+x_pred = apply_logistic_regression(filtered_location_x)
+y_pred = apply_logistic_regression(filtered_location_y)
+print("The coordinates of the next crime according to linear regressio are: (" + str(x_pred) +", "+ str(y_pred) + ")")
