@@ -6,67 +6,48 @@ import xgboost as xgb
 from sklearn.metrics import mean_squared_error
 color_pal = sns.color_palette()
 
-# Read data
-df = pd.read_csv('data_crime_final.csv')
+def outlier_removal_and_visualization(df):
+    # Read data
+    df = df.copy()
+    
+    # Create Time series for location x
+    df_time_loc_x = df[['Timestamps', 'Location_X']]
+    df_time_loc_x = df_time_loc_x.set_index('Timestamps')
+    df_time_loc_x.index = pd.to_datetime(df_time_loc_x.index)
 
-# Needed columns
-needed_columns = ['Timestamps', 'Location_X', 'Location_Y']
+    # Create Time series for location y
+    df_time_loc_y = df[['Timestamps', 'Location_Y']]
+    df_time_loc_y = df_time_loc_y.set_index('Timestamps')
+    df_time_loc_y.index = pd.to_datetime(df_time_loc_y.index)
 
-# Create Time series for location x
-df_time_loc_x = df[['Timestamps', 'Location_X']]
-df_time_loc_x = df_time_loc_x.set_index('Timestamps')
-df_time_loc_x.index = pd.to_datetime(df_time_loc_x.index)
+    # Plot the location x and location y
+    df_time_loc_x.plot(style=".", color=color_pal[0], figsize=(15, 5), title="Location x vs time")
+    plt.show()
+    df_time_loc_y.plot(style=".", color=color_pal[0], figsize=(15, 5), title="Location y vs time")
+    plt.show()
 
-# Create Time series for location y
-df_time_loc_y = df[['Timestamps', 'Location_Y']]
-df_time_loc_y = df_time_loc_y.set_index('Timestamps')
-df_time_loc_y.index = pd.to_datetime(df_time_loc_y.index)
+    # Filter the data to remove values outside the specified range
+    df = df[(df['Location_X'] >= 38.8) & (df['Location_X'] <= 39.4)]
+    df = df[(df['Location_Y'] >= -94.75) & (df['Location_Y'] <= -94.35)]
+    # Create Time series for location x
+    df_time_loc_x = df[['Timestamps', 'Location_X']]
+    df_time_loc_x = df_time_loc_x.set_index('Timestamps')
+    df_time_loc_x.index = pd.to_datetime(df_time_loc_x.index)
 
-# Plot the location x and location y
-df_time_loc_x.plot(style=".", color = color_pal[0], figsize=(15,5), title = "Location x vs time")
-plt.show()
-df_time_loc_y.plot(style=".", color = color_pal[0], figsize=(15,5), title = "Location y vs time")
-plt.show()
+    # Create Time series for location y
+    df_time_loc_y = df[['Timestamps', 'Location_Y']]
+    df_time_loc_y = df_time_loc_y.set_index('Timestamps')
+    df_time_loc_y.index = pd.to_datetime(df_time_loc_y.index)
 
-# Filter the data to remove values outside the specified range
-df = df[(df['Location_X'] >= 36.0) & (df['Location_X'] <= 42.0)]
-df = df[(df['Location_Y'] >= -96.0) & (df['Location_Y'] <= -93.0)]
-# Create Time series for location x
-df_time_loc_x = df[['Timestamps', 'Location_X']]
-df_time_loc_x = df_time_loc_x.set_index('Timestamps')
-df_time_loc_x.index = pd.to_datetime(df_time_loc_x.index)
-
-# Create Time series for location y
-df_time_loc_y = df[['Timestamps', 'Location_Y']]
-df_time_loc_y = df_time_loc_y.set_index('Timestamps')
-df_time_loc_y.index = pd.to_datetime(df_time_loc_y.index)
-
-# Plot the location x and location y
-df_time_loc_x.plot(style=".", color = color_pal[0], figsize=(15,5), title = "Location x vs time")
-plt.show()
-df_time_loc_y.plot(style=".", color = color_pal[0], figsize=(15,5), title = "Location y vs time")
-plt.show()
-# Separate data into train and test for location x and location y
-train_x = df_time_loc_x[df_time_loc_x.index < '2020-09-01']
-test_x = df_time_loc_x[df_time_loc_x.index >= '2020-09-01']
-fig, ax = plt.subplots(figsize=(15,5))
-train_x.plot(ax=ax, label = 'Training Set', title = "Location X split")
-test_x.plot(ax=ax, label = 'Test set')
-ax.axvline('2020-09-01', color = 'black', ls='--')
-ax.legend(['Training set','Test set'])
-plt.show()
-
-train_y = df_time_loc_y[df_time_loc_y.index < '2020-09-01']
-test_y = df_time_loc_y[df_time_loc_y.index >= '2020-09-01']
-fig, ax = plt.subplots(figsize=(15,5))
-train_y.plot(ax=ax, label = 'Training Set', title = "Location Y split")
-test_y.plot(ax=ax, label = 'Test set')
-ax.axvline('2020-09-01', color = 'black', ls='--')
-ax.legend(['Training set','Test set'])
-plt.show()
+    # Plot the location x and location y
+    df_time_loc_x.plot(style=".", color=color_pal[0], figsize=(15, 5), title="Location x vs time")
+    plt.show()
+    df_time_loc_y.plot(style=".", color=color_pal[0], figsize=(15, 5), title="Location y vs time")
+    plt.show()
+    return df_time_loc_x, df_time_loc_y
 
 # Feature Creation
-def create_features(df):
+def _create_features(df):
     """
     Create time series features based on time series index.
     """
@@ -81,108 +62,151 @@ def create_features(df):
     df['weekofyear'] = df.index.isocalendar().week
     return df
 
-df_time_loc_x = create_features(df_time_loc_x)
-df_time_loc_y = create_features(df_time_loc_y)
+def train_model(df_time_loc_x, df_time_loc_y):
 
-# Visualize Hourly Location X location
-fig, ax = plt.subplots(figsize=(10, 8))
-sns.boxplot(data=df_time_loc_x, x='hour', y='Location_X')
-ax.set_title('Location X by Hour')
-plt.show()
+    # Separate data into train and test for location x and location y
+    train_x = df_time_loc_x[df_time_loc_x.index < '2020-10-01']
+    test_x = df_time_loc_x[df_time_loc_x.index >= '2020-10-01']
+    fig, ax = plt.subplots(figsize=(15, 5))
+    train_x.plot(ax=ax, label='Training Set', title="Location X split")
+    test_x.plot(ax=ax, label='Test set')
+    ax.axvline('2020-09-01', color='black', ls='--')
+    ax.legend(['Training set', 'Test set'])
+    plt.show()
+    train_y = df_time_loc_y[df_time_loc_y.index < '2020-10-01']
+    test_y = df_time_loc_y[df_time_loc_y.index >= '2020-10-01']
+    fig, ax = plt.subplots(figsize=(15, 5))
+    train_y.plot(ax=ax, label='Training Set', title="Location Y split")
+    test_y.plot(ax=ax, label='Test set')
+    ax.axvline('2020-09-01', color='black', ls='--')
+    ax.legend(['Training set', 'Test set'])
+    plt.show()
 
-# Visualize Hourly Location X location
-fig, ax = plt.subplots(figsize=(10, 8))
-sns.boxplot(data=df_time_loc_y, x='hour', y='Location_Y')
-ax.set_title('Location Y by Hour')
-plt.show()
+    df_time_loc_x = _create_features(df_time_loc_x)
+    df_time_loc_y = _create_features(df_time_loc_y)
 
-# Visualize location X by month
-fig, ax = plt.subplots(figsize=(10, 8))
-sns.boxplot(data=df_time_loc_x, x='month', y='Location_X', palette='Blues')
-ax.set_title('Location X by Month')
-plt.show()
+    # Visualize Hourly Location X location
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.boxplot(data=df_time_loc_x, x='hour', y='Location_X')
+    ax.set_title('Location X by Hour')
+    plt.show()
 
-# Visualize location y by month
-fig, ax = plt.subplots(figsize=(10, 8))
-sns.boxplot(data=df_time_loc_y, x='month', y='Location_Y', palette='Blues')
-ax.set_title('Location Y by Month')
-plt.show()
+    # Visualize Hourly Location X location
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.boxplot(data=df_time_loc_y, x='hour', y='Location_Y')
+    ax.set_title('Location Y by Hour')
+    plt.show()
 
-train_x = create_features(train_x)
-test_x= create_features(test_x)
-FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
-TARGET = 'Location_X'
+    # Visualize location X by month
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.boxplot(data=df_time_loc_x, x='month', y='Location_X', palette='Blues')
+    ax.set_title('Location X by Month')
+    plt.show()
 
-X_train_x = train_x[FEATURES]
-y_train_x = train_x[TARGET]
+    # Visualize location y by month
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.boxplot(data=df_time_loc_y, x='month', y='Location_Y', palette='Blues')
+    ax.set_title('Location Y by Month')
+    plt.show()
 
-X_test_x = test_x[FEATURES]
-y_test_x = test_x[TARGET]
+    train_x = _create_features(train_x)
+    test_x= _create_features(test_x)
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
+    TARGET = 'Location_X'
 
-reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
-                       n_estimators=1000,
-                       early_stopping_rounds=50,
-                       objective='reg:linear',
-                       max_depth=3,
-                       learning_rate=0.01)
-reg.fit(X_train_x, y_train_x,
-        eval_set=[(X_train_x, y_train_x), (X_test_x, y_test_x)],
-        verbose=100)
+    X_train_x = train_x[FEATURES]
+    y_train_x = train_x[TARGET]
 
-fi = pd.DataFrame(data=reg.feature_importances_,
-             index=reg.feature_names_in_,
-             columns=['importance'])
-fi.sort_values('importance').plot(kind='barh', title='Feature Importance')
-plt.show()
+    X_test_x = test_x[FEATURES]
+    y_test_x = test_x[TARGET]
 
-test_x['prediction'] = reg.predict(X_test_x)
-df_time_loc_x = df_time_loc_x.merge(test_x[['prediction']], how='left', left_index=True, right_index=True)
-ax = df_time_loc_x[['Location_X']].plot(figsize=(15, 5))
-df_time_loc_x['prediction'].plot(ax=ax, style='.')
-plt.legend(['Truth Data', 'Predictions'])
-ax.set_title('Raw Dat and Prediction')
-plt.show()
+    reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
+                           n_estimators=1000,
+                           early_stopping_rounds=50,
+                           objective='reg:squarederror',
+                           max_depth=6,
+                           learning_rate=0.1)
+    reg.fit(X_train_x, y_train_x,
+            eval_set=[(X_train_x, y_train_x), (X_test_x, y_test_x)],
+            verbose=100)
 
-score = np.sqrt(mean_squared_error(test_x['Location_X'], test_x['prediction']))
-print(f'RMSE Score on Test set: {score:0.2f}')
+    fi = pd.DataFrame(data=reg.feature_importances_,
+                 index=reg.feature_names_in_,
+                 columns=['importance'])
+    fi.sort_values('importance').plot(kind='barh', title='Feature Importance')
+    plt.show()
 
-# Now for location Y
+    test_x['prediction'] = reg.predict(X_test_x)
+    df_time_loc_x = df_time_loc_x.merge(test_x[['prediction']], how='left', left_index=True, right_index=True)
+    ax = df_time_loc_x[['Location_X']].plot(figsize=(15, 5))
+    df_time_loc_x['prediction'].plot(ax=ax, style='.')
+    plt.legend(['Truth Data', 'Predictions'])
+    ax.set_title('Raw Dat and Prediction')
+    plt.show()
 
-train_y = create_features(train_y)
-test_y = create_features(test_y)
+    score = np.sqrt(mean_squared_error(test_x['Location_X'], test_x['prediction']))
+    print(f'RMSE Score on Test set: {score:0.2f}')
 
-FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
-TARGET = 'Location_Y'
+    # Now for location Y
 
-X_train_y = train_y[FEATURES]
-y_train_y = train_y[TARGET]
+    train_y = _create_features(train_y)
+    test_y = _create_features(test_y)
 
-X_test_y = test_y[FEATURES]
-y_test_y = test_y[TARGET]
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
+    TARGET = 'Location_Y'
 
-reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
-                       n_estimators=1000,
-                       early_stopping_rounds=50,
-                       objective='reg:linear',
-                       max_depth=3,
-                       learning_rate=0.01)
-reg.fit(X_train_y, y_train_y,
-        eval_set=[(X_train_y, y_train_y), (X_test_y, y_test_y)],
-        verbose=100)
+    X_train_y = train_y[FEATURES]
+    y_train_y = train_y[TARGET]
 
-fi = pd.DataFrame(data=reg.feature_importances_,
-             index=reg.feature_names_in_,
-             columns=['importance'])
-fi.sort_values('importance').plot(kind='barh', title='Feature Importance')
-plt.show()
+    X_test_y = test_y[FEATURES]
+    y_test_y = test_y[TARGET]
 
-test_y['prediction'] = reg.predict(X_test_y)
-df_time_loc_y = df_time_loc_y.merge(test_y[['prediction']], how='left', left_index=True, right_index=True)
-ax = df_time_loc_y[['Location_Y']].plot(figsize=(15, 5))
-df_time_loc_y['prediction'].plot(ax=ax, style='.')
-plt.legend(['Truth Data', 'Predictions'])
-ax.set_title('Raw Dat and Prediction')
-plt.show()
+    reg2 = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
+                           n_estimators=1000,
+                           early_stopping_rounds=50,
+                           objective='reg:squarederror',
+                           max_depth=6,
+                           learning_rate=0.1)
+    reg2.fit(X_train_y, y_train_y,
+            eval_set=[(X_train_y, y_train_y), (X_test_y, y_test_y)],
+            verbose=100)
 
-score = np.sqrt(mean_squared_error(test_y['Location_Y'], test_y['prediction']))
-print(f'RMSE Score on Test set: {score:0.2f}')
+    fi = pd.DataFrame(data=reg2.feature_importances_,
+                 index=reg2.feature_names_in_,
+                 columns=['importance'])
+    fi.sort_values('importance').plot(kind='barh', title='Feature Importance')
+    plt.show()
+
+    test_y['prediction'] = reg2.predict(X_test_y)
+    df_time_loc_y = df_time_loc_y.merge(test_y[['prediction']], how='left', left_index=True, right_index=True)
+    ax = df_time_loc_y[['Location_Y']].plot(figsize=(15, 5))
+    df_time_loc_y['prediction'].plot(ax=ax, style='.')
+    plt.legend(['Truth Data', 'Predictions'])
+    ax.set_title('Raw Dat and Prediction')
+    plt.show()
+
+    score = np.sqrt(mean_squared_error(test_y['Location_Y'], test_y['prediction']))
+    print(f'RMSE Score on Test set: {score:0.2f}')
+    return reg, reg2
+
+def apply_model(model_for_x, model_for_y, list_of_timestamps):
+    df = pd.DataFrame()
+    df['Timestamps'] = list_of_timestamps
+    df = df.set_index('Timestamps')
+    df.index = pd.to_datetime(df.index)
+    df = _create_features(df)
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
+    df_final = df[FEATURES]
+    x_coords = model_for_x.predict(df_final)
+    y_coords = model_for_y.predict(df_final)
+    return [(x,y) for x,y in zip(x_coords, y_coords)]
+
+
+
+
+if __name__ == '__main__':
+    df = pd.read_csv('data_crime_final.csv')
+    df_time_loc_x, df_time_loc_y = outlier_removal_and_visualization(df)
+    model_for_x, model_for_y = train_model(df_time_loc_x, df_time_loc_y)
+    list_of_timestamps = ['2021-01-01 02:00:00', '2021-06-03 14:00:00', '2022-05-01 12:00:00', '2022-01-05 13:00:00']
+    print("Target Locations :", apply_model(model_for_x, model_for_y, list_of_timestamps))
