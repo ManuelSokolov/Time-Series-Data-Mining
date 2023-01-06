@@ -3,13 +3,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import xgboost as xgb
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+
 color_pal = sns.color_palette()
 
 def outlier_removal_and_visualization(df):
     # Read data
     df = df.copy()
-    
+
     # Create Time series for location x
     df_time_loc_x = df[['Timestamps', 'Location_X']]
     df_time_loc_x = df_time_loc_x.set_index('Timestamps')
@@ -56,11 +58,61 @@ def _create_features(df):
     df['dayofweek'] = df.index.dayofweek
     df['quarter'] = df.index.quarter
     df['month'] = df.index.month
-    df['year'] = df.index.year
     df['dayofyear'] = df.index.dayofyear
     df['dayofmonth'] = df.index.day
     df['weekofyear'] = df.index.isocalendar().week
     return df
+
+def train_lin_regression(df_time_loc_x, df_time_loc_y):
+
+    mdl1 = LinearRegression()
+    mdl2 = LinearRegression()
+    train_x = df_time_loc_x[df_time_loc_x.index < '2020-10-01']
+    test_x = df_time_loc_x[df_time_loc_x.index >= '2020-10-01']
+
+    train_y = df_time_loc_y[df_time_loc_y.index < '2020-10-01']
+    test_y = df_time_loc_y[df_time_loc_y.index >= '2020-10-01']
+
+    train_x = _create_features(train_x)
+    test_x = _create_features(test_x)
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month']
+    TARGET = 'Location_X'
+
+    X_train_x = train_x[FEATURES]
+    y_train_x = train_x[TARGET]
+
+    mdl1.fit(X_train_x, y_train_x)
+
+    X_test_x = test_x[FEATURES]
+
+    test_x['prediction'] = mdl1.predict(X_test_x)
+
+    score = np.sqrt(mean_squared_error(test_x['Location_X'], test_x['prediction']))
+    print(f'RMSE Score on Test set: {score:0.2f}')
+
+    train_y = _create_features(train_y)
+    test_y = _create_features(test_y)
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month']
+    TARGET = 'Location_Y'
+
+    X_train_y = train_y[FEATURES]
+    y_train_y = train_y[TARGET]
+
+    mdl1.fit(X_train_y, y_train_y)
+
+    X_test_y = test_y[FEATURES]
+
+    test_y['prediction'] = mdl1.predict(X_test_y)
+
+    score = np.sqrt(mean_squared_error(test_y['Location_Y'], test_y['prediction']))
+    print(f'RMSE Score on Test set: {score:0.2f}')
+
+    return mdl1,mdl2
+
+
+
+
+
 
 def train_model(df_time_loc_x, df_time_loc_y):
 
@@ -70,7 +122,6 @@ def train_model(df_time_loc_x, df_time_loc_y):
     fig, ax = plt.subplots(figsize=(15, 5))
     train_x.plot(ax=ax, label='Training Set', title="Location X split")
     test_x.plot(ax=ax, label='Test set')
-    ax.axvline('2020-09-01', color='black', ls='--')
     ax.legend(['Training set', 'Test set'])
     plt.show()
     train_y = df_time_loc_y[df_time_loc_y.index < '2020-10-01']
@@ -78,7 +129,6 @@ def train_model(df_time_loc_x, df_time_loc_y):
     fig, ax = plt.subplots(figsize=(15, 5))
     train_y.plot(ax=ax, label='Training Set', title="Location Y split")
     test_y.plot(ax=ax, label='Test set')
-    ax.axvline('2020-09-01', color='black', ls='--')
     ax.legend(['Training set', 'Test set'])
     plt.show()
 
@@ -111,7 +161,7 @@ def train_model(df_time_loc_x, df_time_loc_y):
 
     train_x = _create_features(train_x)
     test_x= _create_features(test_x)
-    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month']
     TARGET = 'Location_X'
 
     X_train_x = train_x[FEATURES]
@@ -120,7 +170,7 @@ def train_model(df_time_loc_x, df_time_loc_y):
     X_test_x = test_x[FEATURES]
     y_test_x = test_x[TARGET]
 
-    reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
+    reg = xgb.XGBRegressor(base_score=0.05, booster='gbtree',
                            n_estimators=1000,
                            early_stopping_rounds=50,
                            objective='reg:squarederror',
@@ -133,7 +183,7 @@ def train_model(df_time_loc_x, df_time_loc_y):
     fi = pd.DataFrame(data=reg.feature_importances_,
                  index=reg.feature_names_in_,
                  columns=['importance'])
-    fi.sort_values('importance').plot(kind='barh', title='Feature Importance')
+    fi.sort_values('importance').plot(kind='barh', title='Feature Importance for Location X')
     plt.show()
 
     test_x['prediction'] = reg.predict(X_test_x)
@@ -152,7 +202,7 @@ def train_model(df_time_loc_x, df_time_loc_y):
     train_y = _create_features(train_y)
     test_y = _create_features(test_y)
 
-    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month']
     TARGET = 'Location_Y'
 
     X_train_y = train_y[FEATURES]
@@ -161,7 +211,7 @@ def train_model(df_time_loc_x, df_time_loc_y):
     X_test_y = test_y[FEATURES]
     y_test_y = test_y[TARGET]
 
-    reg2 = xgb.XGBRegressor(base_score=0.5, booster='gbtree',
+    reg2 = xgb.XGBRegressor(base_score=0.05, booster='gbtree',
                            n_estimators=1000,
                            early_stopping_rounds=50,
                            objective='reg:squarederror',
@@ -174,7 +224,7 @@ def train_model(df_time_loc_x, df_time_loc_y):
     fi = pd.DataFrame(data=reg2.feature_importances_,
                  index=reg2.feature_names_in_,
                  columns=['importance'])
-    fi.sort_values('importance').plot(kind='barh', title='Feature Importance')
+    fi.sort_values('importance').plot(kind='barh', title='Feature Importance for Location y')
     plt.show()
 
     test_y['prediction'] = reg2.predict(X_test_y)
@@ -195,7 +245,7 @@ def apply_model(model_for_x, model_for_y, list_of_timestamps):
     df = df.set_index('Timestamps')
     df.index = pd.to_datetime(df.index)
     df = _create_features(df)
-    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month', 'year']
+    FEATURES = ['dayofyear', 'hour', 'dayofweek', 'quarter', 'month']
     df_final = df[FEATURES]
     x_coords = model_for_x.predict(df_final)
     y_coords = model_for_y.predict(df_final)
@@ -208,5 +258,6 @@ if __name__ == '__main__':
     df = pd.read_csv('data_crime_final.csv')
     df_time_loc_x, df_time_loc_y = outlier_removal_and_visualization(df)
     model_for_x, model_for_y = train_model(df_time_loc_x, df_time_loc_y)
+    # para treinar com linear regression passar train_lin_regression(df_time_loc_x, df_time_loc_y)
     list_of_timestamps = ['2021-01-01 02:00:00', '2021-06-03 14:00:00', '2022-05-01 12:00:00', '2022-01-05 13:00:00']
     print("Target Locations :", apply_model(model_for_x, model_for_y, list_of_timestamps))
