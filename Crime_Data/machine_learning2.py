@@ -5,6 +5,11 @@ import seaborn as sns
 import xgboost as xgb
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+import folium
+from folium import plugins
+from folium.plugins import MarkerCluster
+import webbrowser
+from IPython.display import display
 
 color_pal = sns.color_palette()
 
@@ -228,6 +233,76 @@ def train_model(df_time_loc_x, df_time_loc_y):
     plt.show()
 
     test_y['prediction'] = reg2.predict(X_test_y)
+
+    #aNDRE -----------------------------
+
+    # alpha = 0.95 
+
+    # # over predict
+    # reg2_95 = xgb.XGBRegressor(loss="quantile", alpha=alpha,
+    #                     n_estimators=1000,
+    #                     early_stopping_rounds=50,
+    #                     objective='reg:squarederror',
+    #                     max_depth=6,
+    #                     learning_rate=0.1)
+    
+    # reg2_95.fit(X_train_y, y_train_y,
+    #         eval_set=[(X_train_y, y_train_y), (X_test_y, y_test_y)],
+    #         verbose=100)
+
+    # # over predict
+    # alpha = 0.05
+    # reg2_05 = xgb.XGBRegressor(loss="quantile", alpha=alpha,
+    #                     n_estimators=1000,
+    #                     early_stopping_rounds=50,
+    #                     objective='reg:squarederror',
+    #                     max_depth=6,
+    #                     learning_rate=0.1)
+    
+    # reg2_05.fit(X_train_y, y_train_y,
+    #         eval_set=[(X_train_y, y_train_y), (X_test_y, y_test_y)],
+    #         verbose=100)
+    
+    # teste_95 = reg2_95.predict(X_test_y)   
+    # teste_05 = reg2_05.predict(X_test_y)  
+
+    # # Plot the predictions and confidence intervals
+    # plt.plot(teste_95, 'b-', label='Prediction_upper')
+    # plt.plot(teste_95, 'b-', label='Prediction_lower')
+
+    # df_time_loc_y = df_time_loc_y.merge(test_y[['prediction']], how='left', left_index=True, right_index=True)
+    # ax = df_time_loc_y[['Location_Y']].plot(figsize=(15, 5))
+    # df_time_loc_y['prediction'].plot(ax=ax, style='.')
+    # df_real_confianca = pd.DataFrame(
+    # {'95': teste_95,
+    #  '05': teste_05
+    # })
+    # df_real_confianca['95'].plot(ax=ax, style='.')
+    # df_real_confianca['05'].plot(ax=ax, style='.')
+    # plt.legend(['Truth Data', 'Predictions'])
+    # ax.set_title('Raw Dat and Prediction')
+    # plt.show()
+    #plt.legend("Andre")
+
+    # fig = plt.figure(figsize=(10, 10))
+    # ax = df_time_loc_y[['Location_Y']].plot(figsize=(15, 5))
+    # plt.plot(ax, test_y[['prediction']], "r-", label="Predicted mean")
+    # plt.plot(ax, teste_95, "k-")
+    # plt.plot(ax, teste_05, "k-")
+    # plt.fill_between(
+    #     ax.ravel(), teste_05, teste_95, alpha=0.4, label="Predicted 90% interval"
+    # )
+    # plt.xlabel("$x$")
+    # plt.ylabel("$f(x)$")
+    # plt.ylim(-10, 25)
+    # plt.legend(loc="upper left")
+    #plt.show()
+
+    # Show the plot
+    
+    #aNDRE -----------------------------
+
+
     df_time_loc_y = df_time_loc_y.merge(test_y[['prediction']], how='left', left_index=True, right_index=True)
     ax = df_time_loc_y[['Location_Y']].plot(figsize=(15, 5))
     df_time_loc_y['prediction'].plot(ax=ax, style='.')
@@ -236,6 +311,26 @@ def train_model(df_time_loc_x, df_time_loc_y):
     plt.show()
 
     score = np.sqrt(mean_squared_error(test_y['Location_Y'], test_y['prediction']))
+
+    map = folium.Map([38.984518,-94.511084], zoom_start=14)
+    df_prediction = pd.DataFrame(
+    {'Location_X': test_x['prediction'],
+     'Location_Y': test_y['prediction']
+    })
+    #df3=pd.merge(test_x['prediction'],test_y['prediction'])
+    print(df_prediction.head())
+    plugins.HeatMap(df_prediction[['Location_X', 'Location_Y']].values, radius=15).add_to(map)
+    #Display the map
+    map.save('result_andre_prediction.html')
+    df_real = pd.DataFrame(
+    {'Location_X': test_x['Location_X'],
+     'Location_Y': test_y['Location_Y']
+    })
+    #df3=pd.merge(test_x['prediction'],test_y['prediction'])
+    print(df_real.head())
+    plugins.HeatMap(df_real[['Location_X', 'Location_Y']].values, radius=15).add_to(map)
+    #Display the map
+    map.save('result_andre_real.html')
     print(f'RMSE Score on Test set: {score:0.2f}')
     return reg, reg2
 
